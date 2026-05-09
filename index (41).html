@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WTS P2P Pool</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#07090F;--bg2:#0C0F1A;--neon:#00D4FF;--purple:#7B2FFF;
+  --neon-dim:rgba(0,212,255,0.10);--neon-mid:rgba(0,212,255,0.22);
+  --text:#F1F5F9;--text2:#94A3B8;--text3:#3D4F66;
+  --success:#22C55E;--nav-h:68px;--safe:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);overflow:hidden;font-family:'DM Sans',sans-serif;color:var(--text)}
+body{display:flex;flex-direction:column;height:100dvh;position:relative}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);background-size:36px 36px;pointer-events:none;z-index:0}
+.amb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(80px);opacity:.08}
+.amb1{width:300px;height:300px;background:var(--neon);top:-100px;left:-80px}
+.amb2{width:250px;height:250px;background:var(--purple);bottom:80px;right:-60px}
+
+/* SCREENS */
+.screen{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;transition:opacity .3s,transform .3s}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(8px)}
+
+/* BLOCKED */
+#blocked{align-items:center;justify-content:center;text-align:center;padding:2rem;background:var(--bg);z-index:100}
+.b-ring{width:88px;height:88px;border-radius:50%;border:1px solid var(--neon-dim);background:rgba(0,212,255,.05);display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 1.5rem;box-shadow:0 0 40px rgba(0,212,255,.08)}
+.b-title{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;margin-bottom:.75rem}
+.b-sub{font-size:14px;color:var(--text2);line-height:1.65;max-width:280px;margin:0 auto}
+.b-tag{display:inline-block;margin-top:1.5rem;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--neon);text-transform:uppercase;border:1px solid var(--neon-mid);padding:6px 16px;border-radius:20px;background:rgba(0,212,255,.06)}
+
+/* LOADING */
+#loading{align-items:center;justify-content:center;background:var(--bg)}
+.l-logo{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;letter-spacing:3px;background:linear-gradient(135deg,#fff 0%,var(--neon) 50%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+.l-sub{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;margin-bottom:2.5rem}
+.l-bar{width:160px;height:2px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
+.l-fill{height:100%;background:linear-gradient(90deg,var(--neon),var(--purple));border-radius:2px;animation:la 1.4s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes la{from{width:0}to{width:100%}}
+
+/* HEADER */
+.header{position:relative;z-index:20;flex-shrink:0;padding:14px 20px 13px;background:rgba(7,9,15,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--neon-dim)}
+.header::after{content:'';position:absolute;bottom:-1px;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent);opacity:.3}
+.h-row{display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-ico{width:36px;height:36px;border-radius:10px;border:1px solid var(--neon-dim);background:linear-gradient(135deg,rgba(0,212,255,.12),rgba(123,47,255,.10));display:flex;align-items:center;justify-content:center;font-size:17px}
+.logo-name{font-family:'Rajdhani',sans-serif;font-size:19px;font-weight:700;letter-spacing:1.5px;background:linear-gradient(135deg,#fff 0%,var(--neon) 60%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1}
+.logo-lbl{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-top:1px}
+.pill{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--neon);border:1px solid rgba(0,212,255,.22);background:rgba(0,212,255,.07);padding:5px 12px;border-radius:20px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--neon);box-shadow:0 0 6px var(--neon);animation:bl 1.8s ease-in-out infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* SCROLL */
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:calc(var(--nav-h) + var(--safe) + 16px);position:relative;z-index:1}
+.scroll-area::-webkit-scrollbar{display:none}
+
+/* PLAYER CARD */
+.p-card{margin:18px 16px 0;border-radius:18px;border:1px solid var(--neon-dim);background:linear-gradient(140deg,rgba(17,24,39,.92),rgba(10,13,22,.96));padding:16px;position:relative;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.04) inset;animation:fu .4s ease-out both}
+.p-card::before{content:'';position:absolute;top:-30px;right:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,255,.07) 0%,transparent 70%);pointer-events:none}
+@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.p-inner{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+.av-wrap{position:relative;flex-shrink:0}
+.av-img{width:54px;height:54px;border-radius:50%;border:2px solid var(--neon-dim);object-fit:cover;display:block;box-shadow:0 0 24px rgba(0,212,255,.14)}
+.av-ph{width:54px;height:54px;border-radius:50%;border:2px solid var(--neon-dim);background:linear-gradient(135deg,rgba(0,212,255,.14),rgba(123,47,255,.18));display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--neon);box-shadow:0 0 24px rgba(0,212,255,.14)}
+.av-online{position:absolute;bottom:1px;right:1px;width:13px;height:13px;border-radius:50%;background:var(--success);border:2px solid var(--bg2);box-shadow:0 0 8px rgba(34,197,94,.6)}
+.p-info{flex:1;min-width:0}
+.p-name{font-family:'Rajdhani',sans-serif;font-size:19px;font-weight:700;letter-spacing:.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-user{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--neon);margin-top:2px;opacity:.8}
+.p-tid{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--text3);margin-top:3px}
+.p-meta{text-align:right;flex-shrink:0}
+.m-lbl{font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);margin-bottom:3px}
+.m-val{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--neon),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* STATS */
+.stats-row{display:flex;gap:10px;margin:12px 16px 0;animation:fu .4s .08s ease-out both}
+.chip{flex:1;background:rgba(13,17,26,.8);border:1px solid var(--neon-dim);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:8px}
+.cdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cdot.b{background:var(--neon);box-shadow:0 0 6px rgba(0,212,255,.5);animation:bl 2s ease-in-out infinite}
+.cdot.v{background:var(--purple);box-shadow:0 0 6px rgba(123,47,255,.5)}
+.c-lbl{font-size:11px;color:var(--text2);flex:1}
+.c-num{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;color:var(--text)}
+
+/* SECTION LABEL */
+.sec-lbl{font-family:'Rajdhani',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin:22px 20px 12px;display:flex;align-items:center;gap:10px}
+.sec-lbl::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--neon-dim),transparent)}
+
+/* ACTION BTNS */
+.btn-grid{display:flex;flex-direction:column;gap:12px;padding:0 16px}
+.abtn{position:relative;width:100%;border:1px solid var(--neon-dim);border-radius:18px;background:linear-gradient(140deg,rgba(17,24,39,.92),rgba(10,13,22,.96));padding:18px 16px;cursor:pointer;text-align:left;overflow:hidden;box-shadow:0 4px 28px rgba(0,0,0,.4);transition:transform .18s,box-shadow .18s;animation:fu .4s ease-out both}
+.abtn:nth-child(2){animation-delay:.08s}
+.abtn::before{content:'';position:absolute;inset:0;border-radius:18px;background:linear-gradient(135deg,rgba(0,212,255,.05),rgba(123,47,255,.04));opacity:0;transition:opacity .2s}
+.abtn:active{transform:scale(.975);box-shadow:0 2px 12px rgba(0,0,0,.5)}
+.abtn:active::before{opacity:1}
+.btn-line{position:absolute;top:0;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent);opacity:0;transition:opacity .2s}
+.abtn:active .btn-line{opacity:.5}
+.btn-badge{position:absolute;top:12px;right:12px;font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;padding:3px 9px;border-radius:20px}
+.badge-live{color:#4ADE80;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);animation:bl 2s ease-in-out infinite}
+.badge-arc{color:var(--text3);background:rgba(61,79,102,.15);border:1px solid rgba(61,79,102,.3)}
+.btn-in{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+.btn-ico{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:1px solid var(--neon-dim)}
+.ico-a{background:linear-gradient(135deg,rgba(0,212,255,.14),rgba(0,212,255,.06));box-shadow:0 0 20px rgba(0,212,255,.10)}
+.ico-p{background:linear-gradient(135deg,rgba(123,47,255,.16),rgba(123,47,255,.06));box-shadow:0 0 20px rgba(123,47,255,.10);border-color:rgba(123,47,255,.18)}
+.btn-tx{flex:1;min-width:0}
+.btn-ti{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;letter-spacing:.3px;color:var(--text);margin-bottom:3px}
+.btn-sb{font-size:12px;color:var(--text3);line-height:1.45}
+.btn-ar{font-size:20px;color:var(--text3);flex-shrink:0;transition:transform .18s,color .18s}
+.abtn:active .btn-ar{transform:translateX(3px);color:var(--neon)}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe));padding-bottom:var(--safe);z-index:50;background:rgba(7,9,15,.92);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-top:1px solid var(--neon-dim);display:flex;align-items:center;justify-content:space-around;padding-left:24px;padding-right:24px}
+.bnav::before{content:'';position:absolute;top:0;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,var(--neon),transparent);opacity:.2}
+.nbtn{flex:1;height:52px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:13px;position:relative;transition:background .18s}
+.nbtn:active{background:rgba(0,212,255,.05)}
+.n-ico{width:24px;height:24px;stroke:var(--text3);stroke-width:1.6;fill:none;transition:stroke .2s,transform .2s}
+.nbtn.active .n-ico{stroke:var(--neon);transform:scale(1.1)}
+.n-lbl{font-size:9.5px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);transition:color .2s}
+.nbtn.active .n-lbl{color:var(--neon)}
+.n-line{position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);width:0;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--neon),var(--purple));transition:width .25s}
+.nbtn.active .n-line{width:28px}
+
+/* PROFILE SCREEN */
+.pscroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:20px 16px calc(var(--nav-h) + var(--safe) + 16px);position:relative;z-index:1}
+.pscroll::-webkit-scrollbar{display:none}
+.phero{text-align:center;padding:20px 0 24px;animation:fu .4s ease-out both}
+.pav-wrap{position:relative;display:inline-block;margin-bottom:16px}
+.pav-img{width:84px;height:84px;border-radius:50%;border:2px solid var(--neon-dim);object-fit:cover;display:block;box-shadow:0 0 36px rgba(0,212,255,.18)}
+.pav-ph{width:84px;height:84px;border-radius:50%;border:2px solid var(--neon-dim);background:linear-gradient(135deg,rgba(0,212,255,.14),rgba(123,47,255,.18));display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-size:34px;font-weight:700;color:var(--neon);box-shadow:0 0 36px rgba(0,212,255,.18)}
+.pav-ring{position:absolute;inset:-6px;border-radius:50%;border:1.5px solid transparent;background:linear-gradient(var(--bg),var(--bg)) padding-box,linear-gradient(135deg,var(--neon),var(--purple),var(--neon)) border-box;background-size:200%;animation:sp 4s linear infinite}
+@keyframes sp{to{background-position:200%}}
+.pname{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;letter-spacing:.5px;color:var(--text);margin-bottom:4px}
+.pusername{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--neon);opacity:.8;margin-bottom:4px}
+.ptid{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3)}
+.icard{background:linear-gradient(140deg,rgba(17,24,39,.92),rgba(10,13,22,.96));border:1px solid var(--neon-dim);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 4px 24px rgba(0,0,0,.35);animation:fu .4s ease-out both}
+.icard:nth-child(2){animation-delay:.06s}
+.icard:nth-child(3){animation-delay:.12s}
+.ic-title{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:13px}
+.irow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.irow:last-child{border-bottom:none}
+.ir-lbl{font-size:13px;color:var(--text3)}
+.ir-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text2)}
+.empty{text-align:center;padding:18px 0;font-size:13px;color:var(--text3);line-height:1.7}
+.logout{width:100%;border:1px solid rgba(239,68,68,.18);background:rgba(239,68,68,.05);border-radius:14px;padding:15px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;letter-spacing:.5px;color:#F87171;transition:background .18s,border-color .18s;margin-top:4px;animation:fu .4s .18s ease-out both}
+.logout:active{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4)}
+</style>
+</head>
+<body>
+<div class="amb amb1"></div>
+<div class="amb amb2"></div>
+
+<!-- BLOCKED -->
+<div class="screen" id="blocked">
+  <div class="b-ring">🔒</div>
+  <div class="b-title">Откройте через Telegram</div>
+  <div class="b-sub">WTS P2P Pool работает только как Telegram Mini App. Запустите через бота.</div>
+  <span class="b-tag">@wtsp2ppool_bot</span>
+</div>
+
+<!-- LOADING -->
+<div class="screen hidden" id="loading">
+  <div class="l-logo">WTS P2P POOL</div>
+  <div class="l-sub">Peer-to-Peer Tournament</div>
+  <div class="l-bar"><div class="l-fill"></div></div>
+</div>
+
+<!-- MAIN -->
+<div class="screen hidden" id="main">
+  <div class="header">
+    <div class="h-row">
+      <div class="logo">
+        <div class="logo-ico">⚡</div>
+        <div><div class="logo-name">WTS P2P POOL</div><div class="logo-lbl">Peer-to-Peer Tournament</div></div>
+      </div>
+      <div class="pill"><span class="dot"></span>Live</div>
+    </div>
+  </div>
+
+  <div class="scroll-area">
+    <div class="p-card">
+      <div class="p-inner">
+        <div class="av-wrap">
+          <div class="av-ph" id="m-ph">?</div>
+          <img class="av-img" id="m-av" style="display:none" alt="">
+          <div class="av-online"></div>
+        </div>
+        <div class="p-info">
+          <div class="p-name" id="m-name">—</div>
+          <div class="p-user" id="m-username"></div>
+          <div class="p-tid" id="m-tid"></div>
+        </div>
+        <div class="p-meta">
+          <div class="m-lbl">Rating</div>
+          <div class="m-val">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="chip"><div class="cdot b"></div><div class="c-lbl">Активных</div><div class="c-num" id="m-active">0</div></div>
+      <div class="chip"><div class="cdot v"></div><div class="c-lbl">Завершено</div><div class="c-num" id="m-past">0</div></div>
+    </div>
+
+    <div class="sec-lbl">Турниры</div>
+
+    <div class="btn-grid">
+      <button class="abtn" onclick="openSection('active')">
+        <div class="btn-line"></div>
+        <span class="btn-badge badge-live">● Live</span>
+        <div class="btn-in">
+          <div class="btn-ico ico-a">⚡</div>
+          <div class="btn-tx"><div class="btn-ti">Активные турниры</div><div class="btn-sb">Текущие и предстоящие P2P матчи</div></div>
+          <div class="btn-ar">›</div>
+        </div>
+      </button>
+      <button class="abtn" onclick="openSection('past')">
+        <div class="btn-line"></div>
+        <span class="btn-badge badge-arc">Archive</span>
+        <div class="btn-in">
+          <div class="btn-ico ico-p">🏆</div>
+          <div class="btn-tx"><div class="btn-ti">Прошедшие турниры</div><div class="btn-sb">История завершённых матчей</div></div>
+          <div class="btn-ar">›</div>
+        </div>
+      </button>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+
+  <nav class="bnav">
+    <button class="nbtn active" id="nh" onclick="switchTab('home')">
+      <svg class="n-ico" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+      <div class="n-lbl">Главная</div><div class="n-line"></div>
+    </button>
+    <button class="nbtn" id="np" onclick="switchTab('profile')">
+      <svg class="n-ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <div class="n-lbl">Профиль</div><div class="n-line"></div>
+    </button>
+  </nav>
+</div>
+
+<!-- PROFILE -->
+<div class="screen hidden" id="profile">
+  <div class="header">
+    <div class="h-row">
+      <div class="logo">
+        <div class="logo-ico">⚡</div>
+        <div><div class="logo-name">WTS P2P POOL</div><div class="logo-lbl">Peer-to-Peer Tournament</div></div>
+      </div>
+      <div class="pill"><span class="dot"></span>Live</div>
+    </div>
+  </div>
+
+  <div class="pscroll">
+    <div class="phero">
+      <div class="pav-wrap">
+        <div class="pav-ring"></div>
+        <div class="pav-ph" id="p-ph">?</div>
+        <img class="pav-img" id="p-av" style="display:none" alt="">
+      </div>
+      <div class="pname" id="p-name">—</div>
+      <div class="pusername" id="p-username"></div>
+      <div class="ptid" id="p-tid"></div>
+    </div>
+
+    <div class="icard">
+      <div class="ic-title">Аккаунт</div>
+      <div class="irow"><div class="ir-lbl">Имя</div><div class="ir-val" id="pi-name">—</div></div>
+      <div class="irow"><div class="ir-lbl">Username</div><div class="ir-val" id="pi-user">—</div></div>
+      <div class="irow"><div class="ir-lbl">Telegram ID</div><div class="ir-val" id="pi-id">—</div></div>
+      <div class="irow"><div class="ir-lbl">Язык</div><div class="ir-val" id="pi-lang">—</div></div>
+      <div class="irow"><div class="ir-lbl">Premium</div><div class="ir-val" id="pi-prem">—</div></div>
+    </div>
+
+    <div class="icard">
+      <div class="ic-title">Статистика</div>
+      <div class="empty">Статистика появится после участия в турнирах</div>
+    </div>
+
+    <button class="logout" onclick="handleLogout()">Выйти из аккаунта</button>
+  </div>
+
+  <nav class="bnav">
+    <button class="nbtn" id="nh2" onclick="switchTab('home')">
+      <svg class="n-ico" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+      <div class="n-lbl">Главная</div><div class="n-line"></div>
+    </button>
+    <button class="nbtn active" id="np2" onclick="switchTab('profile')">
+      <svg class="n-ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <div class="n-lbl">Профиль</div><div class="n-line"></div>
+    </button>
+  </nav>
+</div>
+
+<script>
+const App = { user: null, tab: 'home' };
+
+/* ── TELEGRAM INIT ── */
+function initTG() {
+  const tg = window.Telegram?.WebApp;
+  if (!tg) return null;
+
+  // Обязательные вызовы для корректной работы в боте
+  tg.ready();
+  tg.expand();
+  tg.enableClosingConfirmation();
+
+  if (!tg.initData || !tg.initDataUnsafe?.user) return null;
+
+  const u = tg.initDataUnsafe.user;
+  return {
+    id:           u.id,
+    first_name:   u.first_name   || '',
+    last_name:    u.last_name    || '',
+    username:     u.username     || null,
+    language_code:u.language_code|| null,
+    photo_url:    u.photo_url    || null,
+    is_premium:   u.is_premium   || false,
+    displayName:  [u.first_name, u.last_name].filter(Boolean).join(' '),
+    initials:     ((u.first_name||'')[0]||(u.last_name||'')[0]||'?').toUpperCase(),
+  };
+}
+
+/* ── RENDER ── */
+function set(id, v) { const e=document.getElementById(id); if(e) e.textContent=v; }
+
+function setAvatar(phId, imgId, u) {
+  const ph=document.getElementById(phId), img=document.getElementById(imgId);
+  if (!ph||!img) return;
+  ph.textContent=u.initials;
+  if (u.photo_url) {
+    img.src=u.photo_url; img.style.display='block'; ph.style.display='none';
+    img.onerror=()=>{ img.style.display='none'; ph.style.display='flex'; };
+  }
+}
+
+function renderUser(u) {
+  set('m-name',     u.displayName||u.first_name);
+  set('m-username', u.username?'@'+u.username:'');
+  set('m-tid',      'ID: '+u.id);
+  setAvatar('m-ph','m-av',u);
+
+  set('p-name',     u.displayName||u.first_name);
+  set('p-username', u.username?'@'+u.username:'');
+  set('p-tid',      'Telegram ID: '+u.id);
+  setAvatar('p-ph','p-av',u);
+
+  set('pi-name', u.displayName||u.first_name);
+  set('pi-user', u.username?'@'+u.username:'—');
+  set('pi-id',   String(u.id));
+  set('pi-lang', u.language_code?u.language_code.toUpperCase():'—');
+  set('pi-prem', u.is_premium?'⭐ Да':'Нет');
+}
+
+/* ── HAPTIC ── */
+function haptic(t='light'){
+  try{window.Telegram?.WebApp?.HapticFeedback?.impactOccurred(t);}catch(_){}
+}
+
+/* ── TABS ── */
+function switchTab(tab) {
+  haptic('light');
+  App.tab = tab;
+  const home = tab==='home';
+  document.getElementById('main').classList.toggle('hidden',!home);
+  document.getElementById('profile').classList.toggle('hidden',home);
+  document.getElementById('nh').classList.toggle('active',home);
+  document.getElementById('np').classList.toggle('active',!home);
+  document.getElementById('nh2').classList.toggle('active',home);
+  document.getElementById('np2').classList.toggle('active',!home);
+}
+
+/* ── OPEN SECTION ── */
+function openSection(type) {
+  haptic('medium');
+  /*
+    Когда будет готов роутинг — замени на:
+    window.location.href = `/tournaments/${type}`;
+    или:
+    window.Telegram.WebApp.openLink(`https://yoursite.com/tournaments/${type}`);
+  */
+  const label = type==='active' ? 'Активные турниры' : 'Прошедшие турниры';
+  window.Telegram?.WebApp?.showAlert(`${label}\n\nРаздел будет подключён к backend.`);
+}
+
+/* ── LOGOUT ── */
+function handleLogout() {
+  haptic('medium');
+  window.Telegram?.WebApp?.showConfirm('Выйти из аккаунта?', ok => {
+    if (ok) window.Telegram.WebApp.close();
+  });
+}
+
+/* ── BOOT ── */
+(function boot() {
+  ['blocked','loading','main','profile'].forEach(id=>
+    document.getElementById(id).classList.add('hidden')
+  );
+  document.getElementById('loading').classList.remove('hidden');
+
+  setTimeout(()=>{
+    document.getElementById('loading').classList.add('hidden');
+
+    const user = initTG();
+    if (!user) {
+      document.getElementById('blocked').classList.remove('hidden');
+      return;
+    }
+
+    App.user = user;
+    renderUser(user);
+    document.getElementById('main').classList.remove('hidden');
+
+    // Кнопка «Назад» в Telegram
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.BackButton.onClick(()=>{
+        if (App.tab!=='home') switchTab('home');
+        else tg.close();
+      });
+    }
+  }, 1400);
+})();
+</script>
+</body>
+</html>
